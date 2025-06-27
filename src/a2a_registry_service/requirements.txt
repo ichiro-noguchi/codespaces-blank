@@ -1,5 +1,0 @@
-# A2ARegistryService用のPython依存パッケージ
-flask
-fastwgi
-langchain
-langgraph
