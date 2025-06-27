@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+.env
+.venv
+venv/
+ENV/
+
+# VSCode
+.vscode/
+.history/
+
+# Node
+node_modules/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# その他
+*.swp
+*.swo
+.idea/
+*.sqlite3
+
+# Vite
+*.local
+
+# テストや一時ファイル
+coverage/
+*.tmp
+*.bak
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ローカルDBやキャッシュ
+agents.json

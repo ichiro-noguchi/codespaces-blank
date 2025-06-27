@@ -1,0 +1,9 @@
+# このディレクトリはSuperAgentServerへ移行されました
+# AIAgent用のPython依存パッケージ
+flask
+fastwgi
+langchain
+langgraph
+gemini-api
+# LangChain経由でGemini APIを利用する場合はlangchain-google-genai等も追加
+langchain-google-genai

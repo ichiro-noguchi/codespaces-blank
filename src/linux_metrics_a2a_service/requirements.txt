@@ -1,0 +1,7 @@
+# LinuxMetricsA2AService用のPython依存パッケージ
+flask
+fastwgi
+langchain
+langgraph
+gemini-api
+langchain-google-genai

@@ -1,0 +1,48 @@
+version: '3.8'
+services:
+  chat_client:
+    build:
+      context: ./src/chat_client
+    container_name: chat_client
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src/chat_client:/app
+    depends_on:
+      - super_agent_server
+  super_agent_server:
+    build:
+      context: ./src/super_agent_server
+    container_name: super_agent_server
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./src/super_agent_server:/app
+    depends_on:
+      - agent_registry_service
+      - linux_metrics_ai_agent
+      - linux_command_ai_agent
+  agent_registry_service:
+    build:
+      context: ./src/agent_registry_service
+    container_name: agent_registry_service
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./src/agent_registry_service:/app
+  linux_metrics_ai_agent:
+    build:
+      context: ./src/linux_metrics_ai_agent
+    container_name: linux_metrics_ai_agent
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./src/linux_metrics_ai_agent:/app
+  linux_command_ai_agent:
+    build:
+      context: ./src/linux_command_ai_agent
+    container_name: linux_command_ai_agent
+    ports:
+      - "5004:5004"
+    volumes:
+      - ./src/linux_command_ai_agent:/app

@@ -1,0 +1,1 @@
+# ChatClient用のPython依存パッケージ

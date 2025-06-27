@@ -1,0 +1,15 @@
+{
+    "name": "devcontainer-sample",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash"
+    },
+    "extensions": [
+        "ms-vscode.cpptools",
+        "ms-python.python",
+        "esbenp.prettier-vscode"
+    ],
+    "postCreateCommand": "echo 'Devcontainer setup complete.'"
+}

@@ -1,0 +1,6 @@
+flask
+fastwgi
+langchain
+langgraph
+gemini-api
+langchain-google-genai
