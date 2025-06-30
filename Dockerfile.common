@@ -1,0 +1,6 @@
+FROM python:3.11-slim
+WORKDIR /app
+# ai_agentパッケージを/opt/python/ai_agentにコピー
+COPY common/ai_agent /opt/python/ai_agent
+ENV PYTHONPATH="/opt/python"
+# 廃止済み。今後は使用しません。
