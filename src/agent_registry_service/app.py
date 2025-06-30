@@ -1,66 +1,73 @@
 # AgentRegistryService のエントリポイント（AIAgentの登録・管理API）
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 import json
 import os
 import uuid
+from typing import Dict
 
-app = Flask(__name__)
+app = FastAPI()
 
 REGISTRY_FILE = 'agents.json'
 
-def load_agents():
+def load_agents() -> Dict[str, dict]:
     if os.path.exists(REGISTRY_FILE):
         with open(REGISTRY_FILE, 'r') as f:
             return json.load(f)
     return {}
 
-def save_agents(agents):
+def save_agents(agents: Dict[str, dict]):
     with open(REGISTRY_FILE, 'w') as f:
         json.dump(agents, f, ensure_ascii=False, indent=2)
 
 agents = load_agents()
 
-@app.route('/agents', methods=['GET'])
+@app.get("/agents")
 def list_agents():
     """AIAgentの一覧を返すAPI"""
-    return jsonify(list(agents.values()))
+    return list(agents.values())
 
-@app.route('/agents/<agent_id>', methods=['GET'])
-def get_agent(agent_id):
+@app.get("/agents/{agent_id}")
+def get_agent(agent_id: str):
     """AIAgentの詳細を返すAPI"""
     agent = agents.get(agent_id)
     if agent:
-        return jsonify(agent)
-    return jsonify({'error': 'not found'}), 404
+        return agent
+    raise HTTPException(status_code=404, detail="not found")
 
-@app.route('/agents', methods=['POST'])
-def register_agent():
+@app.post("/agents")
+async def register_agent(request: Request):
     """AIAgentの登録API"""
-    data = request.json
+    data = await request.json()
     name = data.get('name')
     description = data.get('description')
-    functions = data.get('functions')
-    if not name or not description or not isinstance(functions, list):
-        return jsonify({'error': 'name, description, functions(list) are required'}), 400
+    capabilities = data.get('capabilities')
+    endpoint = data.get('endpoint')
+    status = data.get('status', 'active')
+    if not name or not description or not isinstance(capabilities, list) or not endpoint:
+        return JSONResponse(status_code=400, content={'error': 'name, description, capabilities(list), endpoint are required'})
     agent_id = str(uuid.uuid4())
     registry_info = {
         'id': agent_id,
         'name': name,
         'description': description,
-        'functions': functions
+        'capabilities': capabilities,
+        'endpoint': endpoint,
+        'status': status
     }
     agents[agent_id] = registry_info
     save_agents(agents)
-    return jsonify({'result': 'ok', 'id': agent_id})
+    return {'result': 'ok', 'id': agent_id}
 
-@app.route('/agents/<agent_id>', methods=['DELETE'])
-def delete_agent(agent_id):
+@app.delete("/agents/{agent_id}")
+def delete_agent(agent_id: str):
     """AIAgentの削除API"""
     if agent_id in agents:
         del agents[agent_id]
         save_agents(agents)
-        return jsonify({'result': 'deleted'})
-    return jsonify({'error': 'not found'}), 404
+        return {'result': 'deleted'}
+    raise HTTPException(status_code=404, detail="not found")
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002, debug=True)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5002, reload=True)

@@ -22,6 +22,8 @@ services:
       - agent_registry_service
       - linux_metrics_ai_agent
       - linux_command_ai_agent
+    env_file:
+      - .env
   agent_registry_service:
     build:
       context: ./src/agent_registry_service
@@ -30,6 +32,8 @@ services:
       - "5002:5002"
     volumes:
       - ./src/agent_registry_service:/app
+    env_file:
+      - .env
   linux_metrics_ai_agent:
     build:
       context: ./src/linux_metrics_ai_agent
@@ -38,6 +42,10 @@ services:
       - "5003:5003"
     volumes:
       - ./src/linux_metrics_ai_agent:/app
+    environment:
+      - AGENT_ENDPOINT=http://linux_metrics_ai_agent:5003
+    env_file:
+      - .env
   linux_command_ai_agent:
     build:
       context: ./src/linux_command_ai_agent
@@ -46,3 +54,7 @@ services:
       - "5004:5004"
     volumes:
       - ./src/linux_command_ai_agent:/app
+    environment:
+      - AGENT_ENDPOINT=http://linux_command_ai_agent:5004
+    env_file:
+      - .env

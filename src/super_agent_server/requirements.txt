@@ -1,6 +1,9 @@
+fastapi==0.110.2
+uvicorn[standard]==0.29.0
+httpx==0.27.0
 flask
-fastwgi
 langchain
-langgraph
 gemini-api
+google-generativeai
 langchain-google-genai
+langgraph

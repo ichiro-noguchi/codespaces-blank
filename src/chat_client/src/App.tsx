@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './App.css';
 
+const SUPER_AGENT_API = import.meta.env.VITE_SUPER_AGENT_API || '/api';
+
 function App() {
   const [messages, setMessages] = useState([
     { from: 'ai', text: 'こんにちは！ご用件をどうぞ。' }
@@ -23,11 +25,32 @@ function App() {
     setMessages([...messages, { from: 'user', text: input }]);
     setLoading(true);
     setInput('');
-    // ダミー応答: 実際はAIAgent APIへfetchする
-    setTimeout(() => {
-      setMessages(msgs => [...msgs, { from: 'ai', text: '（ダミー応答）: ' + msgs[msgs.length-1].text }]);
-      setLoading(false);
-    }, 800);
+    try {
+      const res = await fetch(`${SUPER_AGENT_API}/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_input: input })
+      });
+      const data = await res.json();
+      let aiText = '';
+      if (data.help) {
+        aiText = '[機能一覧]\n' + data.help.map((a: any) => `・${a.name}: ${a.description}\n  機能: ${a.capabilities.join(', ')}`).join('\n');
+      } else if (data.missing_parameters) {
+        aiText = `追加情報が必要です: ${data.missing_parameters.join(', ')}`;
+      } else if (data.consent_required) {
+        aiText = 'この操作にはユーザの同意が必要です。実行してよいですか？';
+      } else if (data.result) {
+        aiText = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
+      } else if (data.error) {
+        aiText = 'エラー: ' + data.error;
+      } else {
+        aiText = JSON.stringify(data);
+      }
+      setMessages(msgs => [...msgs, { from: 'ai', text: aiText }]);
+    } catch (e) {
+      setMessages(msgs => [...msgs, { from: 'ai', text: 'API通信エラー' }]);
+    }
+    setLoading(false);
   };
 
   return (
@@ -61,13 +84,8 @@ function App() {
             <button onClick={sendMessage} disabled={loading}>送信</button>
           </div>
         </div>
+        {showSub && <div className="sub-screen">サブ画面（設定など）</div>}
       </main>
-      {showSub && (
-        <aside className="sub-panel">
-          <h3>サブ画面（例：設定）</h3>
-          <p>ここにサブ画面の内容を表示できます。</p>
-        </aside>
-      )}
     </div>
   );
 }
