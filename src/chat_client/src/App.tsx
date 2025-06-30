@@ -1,14 +1,30 @@
-t import React, { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 
-const SUPER_AGENT_API = import.meta.env.VITE_SUPER_AGENT_API || '/api';
+interface Message {
+  from: string;
+  text: string;
+}
 
 function App() {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     { from: 'ai', text: 'こんにちは！ご用件をどうぞ。' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [apiUrl, setApiUrl] = useState<string | null>(null);
+  const configLoaded = useRef(false);
+
+  useEffect(() => {
+    if (configLoaded.current) return;
+    fetch('/chat_client.json')
+      .then(res => res.json())
+      .then(cfg => {
+        setApiUrl(cfg.SUPER_AGENT_API);
+        configLoaded.current = true;
+      })
+      .catch(() => setApiUrl(null));
+  }, []);
 
   // サイドメニューの仮データ
   const menuItems = [
@@ -21,12 +37,12 @@ function App() {
   const [showSub, setShowSub] = useState(false);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !apiUrl) return;
     setMessages([...messages, { from: 'user', text: input }]);
     setLoading(true);
     setInput('');
     try {
-      const res = await fetch(`${SUPER_AGENT_API}/request`, {
+      const res = await fetch(`${apiUrl}/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_input: input })
@@ -46,9 +62,9 @@ function App() {
       } else {
         aiText = JSON.stringify(data);
       }
-      setMessages(msgs => [...msgs, { from: 'ai', text: aiText }]);
+      setMessages((msgs: Message[]) => [...msgs, { from: 'ai', text: aiText }]);
     } catch (e) {
-      setMessages(msgs => [...msgs, { from: 'ai', text: 'API通信エラー' }]);
+      setMessages((msgs: Message[]) => [...msgs, { from: 'ai', text: 'API通信エラー' }]);
     }
     setLoading(false);
   };

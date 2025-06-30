@@ -1,4 +1,4 @@
-from common.ai_agent_base import AIAgentBase
+from ai_agent_base import AIAgentBase
 from typing import List, Dict, Any
 
 class LinuxMetricsAIAgent(AIAgentBase):

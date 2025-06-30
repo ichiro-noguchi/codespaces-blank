@@ -1,12 +1,22 @@
 # SuperAgentServer のエントリポイント（FastAPI + Gemini 対応版）
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import google.generativeai as genai
 import httpx
 import json
 
 app = FastAPI()
+
+# CORS設定: 特定のオリジンからのアクセスを許可
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://edo.marble-corp.com:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Gemini APIキー・モデル名を環境変数から取得
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")

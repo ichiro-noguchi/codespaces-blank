@@ -1,13 +1,27 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
+from ai_agent_base import AIAgentBase
 from ai_agent import LinuxMetricsAIAgent
 import os
+import requests
 
 app = FastAPI()
 
 # エージェントのエンドポイントURL（本番では環境変数や設定ファイルで指定）
 ENDPOINT = os.environ.get("AGENT_ENDPOINT", "http://localhost:5004")
+REGISTRY_URL = os.environ.get("AGENT_REGISTRY_URL", "http://agent_registry_service:5002/agents")
 agent = LinuxMetricsAIAgent(endpoint=ENDPOINT)
+
+@app.on_event("startup")
+def register_agent():
+    try:
+        info = agent.get_registry_info()
+        resp = requests.post(REGISTRY_URL, json=info, timeout=5)
+        resp.raise_for_status()
+        agent.agent_id = resp.json().get("agent_id")
+        print(f"[INFO] Agent registered: {agent.agent_id}")
+    except Exception as e:
+        print(f"[ERROR] Agent registration failed: {e}")
 
 @app.get("/tasks")
 def get_tasks():

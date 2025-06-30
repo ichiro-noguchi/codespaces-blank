@@ -6,10 +6,12 @@ services:
     container_name: chat_client
     ports:
       - "3000:3000"
-    volumes:
-      - ./src/chat_client:/app
     depends_on:
       - super_agent_server
+    env_file:
+      - .env
+    volumes:
+      - ./config/chat_client.json:/usr/share/nginx/html/chat_client.json:ro
   super_agent_server:
     build:
       context: ./src/super_agent_server
@@ -39,22 +41,19 @@ services:
       context: ./src/linux_metrics_ai_agent
     container_name: linux_metrics_ai_agent
     ports:
-      - "5003:5003"
-    volumes:
-      - ./src/linux_metrics_ai_agent:/app
+      - "5003:5000"
     environment:
-      - AGENT_ENDPOINT=http://linux_metrics_ai_agent:5003
+      - AGENT_ENDPOINT=http://linux_metrics_ai_agent:5000
     env_file:
       - .env
   linux_command_ai_agent:
     build:
       context: ./src/linux_command_ai_agent
+      dockerfile: Dockerfile
     container_name: linux_command_ai_agent
     ports:
-      - "5004:5004"
-    volumes:
-      - ./src/linux_command_ai_agent:/app
+      - "5004:5000"
     environment:
-      - AGENT_ENDPOINT=http://linux_command_ai_agent:5004
+      - AGENT_ENDPOINT=http://linux_command_ai_agent:5000
     env_file:
       - .env
