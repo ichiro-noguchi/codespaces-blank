@@ -1,0 +1,11 @@
+{
+  "name": "chatclient-e2e",
+  "version": "1.0.0",
+  "description": "ChatClient E2E tests (Playwright Node.js)",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0"
+  }
+}
