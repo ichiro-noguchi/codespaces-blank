@@ -12,12 +12,79 @@
 ---
 
 ## システム構成
-- Docker Composeで各サービスをコンテナ化・連携
-- 各AIAgentは起動時にAgentRegistryServiceへ自身の情報（tasks含む）を登録
-- SuperAgentServerはAgentRegistryServiceからAIAgent情報（tasks含む）を取得し、ユーザ要求に応じて実行計画を立案
-- tasks情報はAIAgent→Registry→SuperAgentServer間でJSONとして正しく受け渡し
 
----
+### プロセス構成図
+
+```mermaid
+flowchart LR
+    subgraph Frontend
+        ChatClient
+    end
+    subgraph Backend
+        SuperAgentServer
+        AgentRegistryService
+    end
+    subgraph Agents
+        LinuxMetricsAIAgent
+        LinuxCommandAIAgent
+    end
+    ChatClient --API--> SuperAgentServer
+    SuperAgentServer --API--> AgentRegistryService
+    SuperAgentServer --API--> LinuxMetricsAIAgent
+    SuperAgentServer --API--> LinuxCommandAIAgent
+    LinuxMetricsAIAgent --登録--> AgentRegistryService
+    LinuxCommandAIAgent --登録--> AgentRegistryService
+```
+
+### 起動編：AIAgentの登録・準備完了まで
+
+AIAgentは起動時にAgentRegistryServiceへ自身の情報（tasks含む）を登録し、準備完了となります。
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザ
+    participant ChatClient
+    participant SuperAgentServer
+    participant AgentRegistryService
+    participant LinuxMetricsAIAgent
+    participant LinuxCommandAIAgent
+    box "LLM" #lightblue
+        participant Gemini
+    end
+
+    LinuxMetricsAIAgent->>AgentRegistryService: /agents へ自身の情報・tasksをPOST
+    AgentRegistryService-->>LinuxMetricsAIAgent: 登録完了レスポンス
+    LinuxCommandAIAgent->>AgentRegistryService: /agents へ自身の情報・tasksをPOST
+    AgentRegistryService-->>LinuxCommandAIAgent: 登録完了レスポンス
+```
+
+### 利用編：ユーザ要求から結果返却まで
+
+ユーザがChatClientを通じてリクエストを送信し、SuperAgentServerがAIAgentやRegistry、LLM（Gemini）と連携して結果を返却します。
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザ
+    participant ChatClient
+    participant SuperAgentServer
+    participant AgentRegistryService
+    participant LinuxMetricsAIAgent
+    participant LinuxCommandAIAgent
+    box "LLM" #lightblue
+        participant Gemini
+    end
+
+    User->>ChatClient: 入力（例: CPUメトリクス要求）
+    ChatClient->>SuperAgentServer: /request API呼び出し
+    SuperAgentServer->>AgentRegistryService: AIAgent情報・tasks取得
+    AgentRegistryService-->>SuperAgentServer: AIAgent情報・tasks返却
+    SuperAgentServer->>Gemini: LLMプロンプト生成・問い合わせ
+    Gemini-->>SuperAgentServer: LLM応答
+    SuperAgentServer->>LinuxMetricsAIAgent: タスク実行（例: CPUメトリクス取得）
+    LinuxMetricsAIAgent-->>SuperAgentServer: 結果返却
+    SuperAgentServer->>ChatClient: 結果返却
+    ChatClient-->>User: 結果表示
+```
 
 ## API設計（主要エンドポイント）
 ### SuperAgentServer

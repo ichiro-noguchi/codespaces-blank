@@ -9,7 +9,7 @@ class LinuxCommandAIAgent(AIAgentBase):
     def __init__(self, endpoint: str):
         super().__init__(
             name="LinuxCommandAIAgent",
-            description="Linuxコマンドを実行するAIAgent",
+            description="Linuxサーバ上でコマンド提案や実行を行い、システム操作や自動化を支援するAIAgent。コマンドライン操作の自動化や運用効率化に利用可能。",
             capabilities=[
                 "suggest_command",
                 "run_command"

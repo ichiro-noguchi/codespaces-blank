@@ -44,3 +44,4 @@ coverage/
 
 # ローカルDBやキャッシュ
 agents.json
+volumes/

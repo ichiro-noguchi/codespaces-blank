@@ -34,9 +34,13 @@ class AIAgentBase(ABC):
         """
         AgentRegistryServiceへ登録するための情報を返す。
         """
+        import os
+        artifact_id = os.environ.get("ARTIFACT_ID")
         return {
+            'artifactID': artifact_id,
             'name': self.name,
             'description': self.description,
             'capabilities': self.capabilities,
-            'endpoint': self.endpoint
+            'endpoint': self.endpoint,
+            'tasks': self.get_tasks()  # tasksも必ず含める
         }

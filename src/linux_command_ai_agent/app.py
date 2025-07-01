@@ -15,17 +15,15 @@ agent = LinuxCommandAIAgent(endpoint=ENDPOINT)
 def register_agent():
     try:
         info = agent.get_registry_info()
+        # agent.get_tasks()の結果を直接セット
+        info["tasks"] = agent.get_tasks()
+        print(f"[DEBUG] registry info to POST: {info}")
         resp = requests.post(REGISTRY_URL, json=info, timeout=5)
         resp.raise_for_status()
         agent.agent_id = resp.json().get("agent_id")
         print(f"[INFO] Agent registered: {agent.agent_id}")
     except Exception as e:
         print(f"[ERROR] Agent registration failed: {e}")
-
-@app.get("/tasks")
-def get_tasks():
-    """対応可能なタスク定義リストを返す"""
-    return agent.get_tasks()
 
 @app.post("/run")
 async def run_task(request: Request):
@@ -35,6 +33,10 @@ async def run_task(request: Request):
     if not task_type:
         return JSONResponse(status_code=400, content={"error": "type is required"})
     return agent.handle_request(task_type, params)
+
+@app.get("/tasks")
+def list_tasks():
+    return agent.get_tasks()
 
 if __name__ == "__main__":
     import uvicorn

@@ -8,7 +8,7 @@ from typing import Dict
 
 app = FastAPI()
 
-REGISTRY_FILE = 'agents.json'
+REGISTRY_FILE = '/work/agents.json'
 
 def load_agents() -> Dict[str, dict]:
     if os.path.exists(REGISTRY_FILE):
@@ -37,31 +37,22 @@ def get_agent(agent_id: str):
 
 @app.post("/agents")
 async def register_agent(request: Request):
-    """AIAgentの登録API"""
+    """AIAgentの登録API (artifactIDで登録・更新)"""
     data = await request.json()
-    name = data.get('name')
-    description = data.get('description')
-    capabilities = data.get('capabilities')
-    endpoint = data.get('endpoint')
-    status = data.get('status', 'active')
-    if not name or not description or not isinstance(capabilities, list) or not endpoint:
-        return JSONResponse(status_code=400, content={'error': 'name, description, capabilities(list), endpoint are required'})
-    agent_id = str(uuid.uuid4())
-    registry_info = {
-        'id': agent_id,
-        'name': name,
-        'description': description,
-        'capabilities': capabilities,
-        'endpoint': endpoint,
-        'status': status
-    }
-    agents[agent_id] = registry_info
+    artifact_id = data.get('artifactID')
+    # 必須項目チェックのみ行い、データ構造ごと保存
+    if not artifact_id or not data.get('name') or not data.get('description') or not isinstance(data.get('capabilities'), list) or not data.get('endpoint'):
+        return JSONResponse(status_code=400, content={'error': 'artifactID, name, description, capabilities(list), endpoint are required'})
+    if 'tasks' not in data or not isinstance(data['tasks'], list):
+        data['tasks'] = []
+    agents[artifact_id] = data
     save_agents(agents)
-    return {'result': 'ok', 'id': agent_id}
+    return {'result': 'ok', 'artifactID': artifact_id}
 
 @app.delete("/agents/{agent_id}")
 def delete_agent(agent_id: str):
     """AIAgentの削除API"""
+    # artifactIDで削除できるようにキー名を変更
     if agent_id in agents:
         del agents[agent_id]
         save_agents(agents)

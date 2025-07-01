@@ -34,6 +34,7 @@ services:
       - "5002:5002"
     volumes:
       - ./src/agent_registry_service:/app
+      - ./volumes/agent_registry_service:/work
     env_file:
       - .env
   linux_metrics_ai_agent:
@@ -44,6 +45,8 @@ services:
       - "5003:5000"
     environment:
       - AGENT_ENDPOINT=http://linux_metrics_ai_agent:5000
+      - ARTIFACT_ID=${DOMAIN_NAME}/linux_metrics_ai_agent
+      - AGENT_REGISTRY_URL=http://agent_registry_service:5002/agents
     env_file:
       - .env
   linux_command_ai_agent:
@@ -55,5 +58,7 @@ services:
       - "5004:5000"
     environment:
       - AGENT_ENDPOINT=http://linux_command_ai_agent:5000
+      - ARTIFACT_ID=${DOMAIN_NAME}/linux_command_ai_agent
+      - AGENT_REGISTRY_URL=http://agent_registry_service:5002/agents
     env_file:
       - .env

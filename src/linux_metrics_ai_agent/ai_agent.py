@@ -5,7 +5,7 @@ class LinuxMetricsAIAgent(AIAgentBase):
     def __init__(self, endpoint: str):
         super().__init__(
             name="LinuxMetricsAIAgent",
-            description="Linuxのメトリクスを取得するAIAgent",
+            description="LinuxサーバのCPU・メモリ・ディスクなど主要なシステムメトリクスを取得し、リソース監視や障害調査を支援するAIAgent。システムの状態把握やパフォーマンス分析に利用可能。",
             capabilities=[
                 "list_metrics",
                 "get_cpu_metrics",
