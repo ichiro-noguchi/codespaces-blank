@@ -1,154 +1,182 @@
-# プロジェクト名
-
-（ここにシステム名を記入）
+# AI Agent System (SuperAgentServer, AgentRegistryService, LinuxMetricsAIAgent, LinuxCommandAIAgent)
 
 ## 概要
-AIエージェントを使ったChatシステムの開発を行うプロジェクトです。
-### 構成
-- クライアント：ChatClient と呼びます
-- サーバ
-    - SuperAgentServer
-    - AgentRegistryService
-    - LinuxMetricsAIAgent
-    - LinuxCommandAIAgent
+このプロジェクトは、複数のAIエージェント（AIAgent）を統合し、ユーザ要求に応じて最適なタスク実行・情報取得を行うシステムです。
 
-## 機能一覧
-- [x] ChatClient
-    - [x] デスクトップ向け3ペインレイアウト（左サイドメニュー・中央チャット・右サブ画面）
-    - [x] 画面全体を広く使うレスポンシブデザイン
-    - [x] メッセージ送信・ダミー応答のチャットUI
-    - [x] サイドメニュー・サブ画面の仮実装
-    - [ ] SuperAgentServer API連携（今後実装）
-- [ ] サーバ
-    - [x] SuperAgentServer（Gemini LLM連携API, FastAPI, .env対応）
-        - [x] Gemini LLM API連携
-        - [x] .envによるAPIキー・モデル一元管理
-        - [x] RESTサーバ起動
-        - [ ] AgentRegistry/AIAgent連携
-        - [ ] 実行計画・同意確認・ChatClient連携
-    - [x] AgentRegistryService（FastAPI, .env対応）
-        - [x] AIAgentの登録・一覧・詳細・削除API
-        - [x] JSON永続化
-        - [x] endpoint/capabilities/同意要否情報の管理
-    - [x] LinuxMetricsAIAgent
-        - [x] /tasks, /run API
-        - [x] get_tasksでrequires_consent情報付与
-    - [x] LinuxCommandAIAgent
-        - [x] /tasks, /run API
-        - [x] Gemini LLMによるコマンド提案
-        - [x] get_tasksでrequires_consent情報付与
-        - [ ] コマンド実行の安全対策
+- **ChatClient**: ユーザインターフェース（React+Vite）
+- **SuperAgentServer**: ユーザ要求を受け、AIAgentやLLMと連携して実行計画を立案・実行するメインサーバ
+- **AgentRegistryService**: AIAgentの登録・管理・情報提供を行うレジストリサーバ
+- **LinuxMetricsAIAgent**: Linuxメトリクス取得用AIAgent
+- **LinuxCommandAIAgent**: Linuxコマンド実行用AIAgent
 
-- [ ] 機能3: （例：データ表示）
+---
 
-## 機能詳細
-### ChatClient
-- React + TypeScript + Vite で実装
-- デスクトップ向け3ペインレイアウト（左サイドメニュー・中央チャット・右サブ画面）
-- 画面全体を広く使うレスポンシブデザイン
-- メッセージ送信・ダミー応答のチャットUI
-- サイドメニュー・サブ画面の仮実装
-- SuperAgentServer API連携は今後実装予定
+## システム構成
+- Docker Composeで各サービスをコンテナ化・連携
+- 各AIAgentは起動時にAgentRegistryServiceへ自身の情報（tasks含む）を登録
+- SuperAgentServerはAgentRegistryServiceからAIAgent情報（tasks含む）を取得し、ユーザ要求に応じて実行計画を立案
+- tasks情報はAIAgent→Registry→SuperAgentServer間でJSONとして正しく受け渡し
 
+---
+
+## API設計（主要エンドポイント）
 ### SuperAgentServer
-#### 実装の前提
-- Gemini LLM API連携（/llmエンドポイント）
-- .envによるAPIキー・モデル一元管理
-- RESTサーバ起動（FastAPI）
-#### ユーザ要求の処理
-- どんな機能があるのかを聞かれたら、AgentRegistryServiceからAIAgent情報を取得して、了解性の高いフォーマットでユーザに示す
-- AgentRegistryServiceからAIAgent情報を取得し、ユーザの要求に応じるための実行計画を立てる
-- 実行計画に従い、AIAgentやLLM、ツールを組み合わせて処理を実行
-    - 各AIAgentの/tasks, /run APIを呼び出し、ーザ要求に応じた実行計画を立案
-    - requires_consent=trueのタスクはChatClient経由でユーザ同意を取得
-- 今後：ChatClientとのAPI連携、実行計画の自動生成・管理、同意フローのUI連携
-#### 結果の表示
-- 結果をChatClientに返却
+- `/request` : ユーザ要求を受けて実行計画を立案・実行
+    - 入力: `{ "user_input": "..." }`
+    - 出力: `{ "status": ..., "result": ... }`
+    
+    #### リクエスト例
+    ```json
+    POST /request
+    {
+      "user_input": "CPUメトリクスを教えて"
+    }
+    ```
+    #### レスポンス例
+    ```json
+    {
+      "status": "success",
+      "result": {
+        "cpu_usage": 12.3,
+        "unit": "%"
+      }
+    }
+    ```
+- `/command` : システムコマンド実行
+    - 入力: `{ "command": "...", "arguments": [ ... ] }`
+    - 出力: `{ "command": ..., "status": ..., "result": ... }`
+    
+    #### リクエスト例
+    ```json
+    POST /command
+    {
+      "command": "ls",
+      "arguments": ["-l", "/tmp"]
+    }
+    ```
+    #### レスポンス例
+    ```json
+    {
+      "command": "ls",
+      "status": "SUCCESS",
+      "result": ["file1.txt", "file2.txt"]
+    }
+    ```
+
+> ※ `/agents` `/tasks` などのAPIは廃止。AIAgent情報・tasksは全てRegistry経由で取得。
 
 ### AgentRegistryService
-- SuperAgentServerの登録・管理を行うサーバ
-- SuperAgentServerの一覧と詳細を取得するAPIを提供
-- Flask + FastAPI + langchain + langgraph で実装
-- API は
-    - 一覧と詳細の取得は  SuperAgentServerが使用することを想定しています
-    - 登録・更新・削除は、AIAgentが使用することを想定しています
-- 登録されたSuperAgentServerの情報を保持し、SuperAgentServerが自身の情報を登録するためのエンドポイントを提供
-- 登録データはJSONファイルとしてローカルファイルで保存し、JSON の中身は AgentRegistryInfo
-- AgentRegistryInfo は以下の情報を持ちます
-    - id: エージェントの一意なID（AgentRegistryServiceが登録時に生成）
-    - name: エージェント名
-    - description: エージェントの説明
-    - capabilities: 機能・役割（例: ["get_cpu_metrics", "get_memory_metrics", ...]）
-    - endpoint: エージェントのAPIエンドポイントURL
-    - status: 稼働状態（例: "active", "inactive" など）
+- `/agents` : AIAgentの登録・一覧・詳細取得
+    - POST: 新規登録/上書き（tasks含む全情報をJSONで）
+    - GET: 一覧取得（tasks含む）
+    - GET `/agents/{artifactID}`: 個別取得
 
-### AIAgent
-- これはAIAgentを実装したサービスのベースクラスです。
-- 以下の機能を持ちます
-    - AIAgentとしての基本的なインターフェースを定義
-    - AgentRegistryService へ登録するためのメソッドを提供
-    - 起動時に AgentRegistryService へ自身の情報を登録します
-    - AIAgentの実装を提供するための抽象メソッドを定義
-    - **/tasks エンドポイント（GET）を必須で実装し、自身が対応可能なタスク（Task Definitionのリスト）を返すAPIを提供**
-        - 例: GET /tasks → [{"type": "get_cpu_metrics", "parameters": {...}, ...}, ...]
+---
 
+## tasks情報の流れ
+- 各AIAgentは `/tasks` API（またはget_registry_info）で自分のタスク一覧（`requires_consent`含む）を返す
+- 登録時にtasks情報を含めてRegistryへPOST
+- Registryはtasks情報をJSONで保存・返却
+- SuperAgentServerはRegistryからtasks情報を取得し、ユーザ要求に応じて実行計画を生成
 
-### LinuxMetricsAIAgent
-- AIAgentの具体的な実装です
-- Linuxのメトリクスを取得するためのAIAgent サービスです
-- 以下の機能をA2A のタスクとして提供します
-    - メトリック種別一覧取得（同意不要）
-    - CPU Metrics（同意不要）
-    - Memory Metrics（同意不要）
-    - Disk Metrics（同意不要）
-    - ※各タスク定義には `requires_consent`（ユーザ同意要否: true/false）を含める
+---
 
-### LinuxCommandAIAgent
-- AIAgentの具体的な実装です
-- Linuxのコマンドを実行するためのAIAgent サービスです
-- 以下の機能をA2A のタスクとして提供します
-    - ユーザの指示に応じたコマンドラインの提案（同意不要）
-    - 指定したコマンドラインの実行（同意必須: requires_consent=true）
-    - ※各タスク定義には `requires_consent`（ユーザ同意要否: true/false）を含める
+## Docker運用
+- `docker-compose build` で全サービスのイメージをビルド
+- `docker-compose up -d` で全サービス起動
+- ボリューム（`volumes/agent_registry_service:/work`）でRegistryの永続化
+- キャッシュ/中間ファイルは `.gitignore` で管理外
+- サービス再起動時は `docker-compose down && docker-compose up -d` で反映
 
+---
 
-## セットアップ手順
-1. リポジトリをクローン
-2. devcontainer で開く
-3. 必要なコマンドを実行
+## .env 設定例
+```
+VITE_SUPER_AGENT_API=http://super_agent_server:5001
+GEMINI_API_KEY=...（省略）
+GEMINI_MODEL=models/gemini-2.5-flash
+AGENT_REGISTRY_URL=http://agent_registry_service:5002
+DOMAIN_NAME=edo.marble-corp.com
+```
+- `AGENT_REGISTRY_URL` は `/agents` を含めず指定
+- 各AIAgentは `ARTIFACT_ID` を `DOMAIN_NAME/service名` で自動生成
 
-## 使用技術
-### ChatClient
-- 言語: TypeScript
-- フレームワーク: React, Vite
-- その他: Docker, VS Code Devcontainer
-### SuperAgentServer
-- 言語: Python
-- フレームワーク: Flask, FastWGI , langchain, langgraph
-- その他: Devcontainer 
-### AgentRegistryService
-- 言語: Python
-- フレームワーク: Flask, FastWGI , langchain, langgraph
-- その他: Devcontainer 
-### AIAgent / LinuxMetricsAIAgent / LinuxCommandAIAgent
-- 言語: Python
-- フレームワーク: Flask, FastWGI , langchain, langgraph
-- その他: Devcontainer 
+---
 
 ## ディレクトリ構成
 ```
 <project-root>
-    docker-compose.yml
-    src/
-        ├── chat_client/          # ChatClientのコード
-        ├── super_agent_server/   # SuperAgentServerのコード
-        ├── agent_registry_service/ # AgentRegistryServiceのコード
-        ├── linux_metrics_ai_agent/ # LinuxMetricsAIAgentのコード
-        └── linux_command_ai_agent/ # LinuxCommandAIAgentのコード
-        └── common/              # 共通のコード
+  docker-compose.yml
+  .env
+  src/
+    chat_client/
+    super_agent_server/
+    agent_registry_service/
+    linux_metrics_ai_agent/
+    linux_command_ai_agent/
 ```
 
+---
+
+## クイックスタート
+1. リポジトリをクローン
+2. `.env` を編集
+3. `docker-compose build` で全サービスビルド
+4. `docker-compose up -d` で全サービス起動
+5. ChatClient（Web UI）から操作
+
+---
+
+## 備考・今後のTODO
+- README.mdを実装に合わせて随時更新
+- ChatClientやAPI呼び出し例の追記
+- LLMプロンプト設計・同意フローのUI連携強化
+
+---
+
+## テストディレクトリ構成・実行方法
+- `test/unit/` : APIやロジックのユニットテスト（pytest等で実行）
+- `test/e2e/` : ChatClientを含むE2Eテスト（Playwright+Chromium）
+
+### E2Eテスト実行例
+```sh
+pip install playwright
+playwright install chromium
+python test/e2e/test_chatclient_e2e.py
+```
+
+---
+
+## ChatClientからのAPI呼び出し例
+```js
+// 例: fetchでSuperAgentServerの/requestを呼ぶ
+fetch(process.env.VITE_SUPER_AGENT_API + '/request', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ user_input: 'CPUメトリクスを教えて' })
+})
+  .then(res => res.json())
+  .then(data => console.log(data));
+```
+
+---
+
+## .envの配置と用途
+- ルート直下: バックエンド各サービス用（APIエンドポイント、LLMキー等）
+- `src/chat_client/.env`: フロントエンド用（VITE_SUPER_AGENT_API など）
+
+---
+
+## 運用Tips
+- Docker再起動時は `docker-compose down && docker-compose up -d` で全サービスを再起動
+- Registryの永続化は `volumes/agent_registry_service:/work` で管理
+- キャッシュ/中間ファイルは `.gitignore` で除外
+- テスト用APIやE2Eテストは本番環境では無効化・制限推奨
+
+---
+
 ## 今後のTODO
-- [ ] README.md を更新
-- [ ] 必要なファイル・ディレクトリを追加
-- [ ] コード実装
+- [ ] README.mdのAPI例・テスト運用説明の充実
+- [ ] ChatClientやAPI呼び出し例の拡充
+- [ ] LLMプロンプト設計・同意フローのUI連携強化
+- [ ] テストケースの追加・自動化
