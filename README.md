@@ -203,14 +203,16 @@ DOMAIN_NAME=edo.marble-corp.com
 
 ## テストディレクトリ構成・実行方法
 - `test/unit/` : APIやロジックのユニットテスト（pytest等で実行）
-- `test/e2e/` : ChatClientを含むE2Eテスト（Playwright+Chromium）
+- `test/e2e/` : ChatClientを含むE2Eテスト（Node.js Playwright公式ランナー＋Docker完全自己完結型）
 
 ### E2Eテスト実行例
 ```sh
-pip install playwright
-playwright install chromium
-python test/e2e/test_chatclient_e2e.py
+cd test/e2e
+./build.sh   # Dockerイメージをビルド（初回またはテストコード変更時）
+./run.sh     # E2Eテストを実行
 ```
+- 依存解決・テスト実行はすべてDockerコンテナ内で完結します
+- Python+Playwrightによる旧E2Eテストは廃止しました
 
 ---
 
